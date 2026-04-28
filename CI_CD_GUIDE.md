@@ -88,7 +88,7 @@ Karena kita sudah menyiapkan `docker-compose.yml`, proses *deployment* di server
 4. Masukkan *environment variables* yang krusial ke dalam file `.env`:
    ```env
    NEXT_PUBLIC_SUPABASE_URL=https://xyz.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh...
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
    # Tambahkan KEY Resend dll jika nanti diperlukan di sisi Backend.
    ```
 5. Simpan file `docker-compose.yml` (yang ada di *root* folder proyek ini) berdampingan dengan `.env`. Anda mungkin perlu sedikit memodifikasi file `docker-compose.yml` pada baris `build: .` menjadi `image: ghcr.io/<username_anda>/<nama_repo>:v1.0.0` jika Anda mengambil image langsung dari GHCR.

@@ -87,8 +87,8 @@ NEXT_PUBLIC_USE_MOCK_DATA=true
 ```env
 NEXT_PUBLIC_USE_MOCK_DATA=false
 NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT-ID].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
 
 ### 3. Menjalankan Server Pengembangan (Development)
