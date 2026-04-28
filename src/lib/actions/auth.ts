@@ -6,6 +6,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export async function signUpUser(formData: FormData) {
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
+        return { success: true };
+    }
+
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const companyName = formData.get('companyName') as string;
@@ -79,6 +83,11 @@ export async function signUpUser(formData: FormData) {
 }
 
 export async function signOutUser() {
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
+        redirect('/login');
+        return;
+    }
+
     const supabase = await createClient();
     await supabase.auth.signOut();
     redirect('/login');

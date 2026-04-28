@@ -22,6 +22,20 @@ export type ActionResponse = {
 };
 
 export async function getCompanySettings(): Promise<ActionResponse> {
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
+        return {
+            success: true,
+            message: 'Mock settings fetched',
+            data: {
+                id: 'mock-company',
+                name: 'SmartRecruit Demo',
+                primary_color: '#3B82F6',
+                slug: 'smartrecruit-demo',
+                parsing_config: { geminiKey: 'dummy-key' }
+            }
+        };
+    }
+
     try {
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -70,6 +84,10 @@ export async function getCompanySettings(): Promise<ActionResponse> {
 }
 
 export async function updateCompanySettings(data: Partial<CompanySettings>): Promise<ActionResponse> {
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
+        return { success: true, message: 'Mock settings updated successfully' };
+    }
+
     try {
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();

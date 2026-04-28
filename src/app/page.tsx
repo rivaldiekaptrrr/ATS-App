@@ -91,20 +91,37 @@ import Image from 'next/image';
 
 // Fetch Company Info (Single Tenant: Get the first company found)
 async function getCompanyInfo() {
-  const serviceClient = await createServiceClient();
-  const { data: company, error } = await serviceClient
-    .from('companies')
-    .select('*')
-    .single(); // For Single Tenant, we just take the one and only company
+  if (useMockData) {
+    return {
+      name: 'SmartRecruit Demo',
+      logo_url: null,
+      primary_color: '#3B82F6'
+    };
+  }
 
-  if (error || !company) {
+  try {
+    const serviceClient = await createServiceClient();
+    const { data: company, error } = await serviceClient
+      .from('companies')
+      .select('*')
+      .single(); // For Single Tenant, we just take the one and only company
+
+    if (error || !company) {
+      return {
+        name: 'SmartRecruit',
+        logo_url: null,
+        primary_color: '#3B82F6'
+      };
+    }
+    return company;
+  } catch (error) {
+    console.error('Error fetching company info:', error);
     return {
       name: 'SmartRecruit',
       logo_url: null,
       primary_color: '#3B82F6'
     };
   }
-  return company;
 }
 
 export default async function HomePage() {

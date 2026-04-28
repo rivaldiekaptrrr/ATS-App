@@ -33,8 +33,12 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
+    // Check if using mock data
+    const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+
     // Protected routes - redirect to login if not authenticated
     if (
+        !useMockData &&
         !user &&
         request.nextUrl.pathname.startsWith('/dashboard')
     ) {

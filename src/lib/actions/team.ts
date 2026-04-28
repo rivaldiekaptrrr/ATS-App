@@ -14,6 +14,16 @@ export interface TeamMember {
 }
 
 export async function getTeamMembers(): Promise<{ success: boolean; data?: TeamMember[]; error?: string }> {
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
+        return {
+            success: true,
+            data: [
+                { id: '1', full_name: 'Admin Demo', email: 'admin@example.com', role: 'admin', avatar_url: null, created_at: new Date().toISOString() },
+                { id: '2', full_name: 'HR Recruiter', email: 'hr@example.com', role: 'recruiter', avatar_url: null, created_at: new Date().toISOString() }
+            ]
+        };
+    }
+
     try {
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -56,6 +66,10 @@ export async function getTeamMembers(): Promise<{ success: boolean; data?: TeamM
 }
 
 export async function getCurrentUserProfile() {
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
+        return { full_name: 'Admin Demo', role: 'admin', email: 'admin@example.com', avatar_url: null };
+    }
+
     try {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -75,6 +89,10 @@ export async function getCurrentUserProfile() {
 }
 
 export async function createUser(formData: FormData) {
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
+        return { success: true };
+    }
+
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;

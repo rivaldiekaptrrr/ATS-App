@@ -27,6 +27,23 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
+            // Check if using mock data
+            const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+
+            if (useMockData) {
+                // MOCK LOGIN BYPASS
+                if (email === 'admin@example.com' && password === 'admin123') {
+                    toast.success('Login Berhasil (Mode Demo)');
+                    router.push('/dashboard/settings');
+                    router.refresh();
+                    return;
+                } else {
+                    toast.error('Kredensial demo salah. Gunakan admin@example.com / admin123');
+                    setIsLoading(false);
+                    return;
+                }
+            }
+
             const { createClient } = await import('@/lib/supabase/client');
             const supabase = createClient();
 

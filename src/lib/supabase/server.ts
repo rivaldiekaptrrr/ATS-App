@@ -5,9 +5,14 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 export async function createClient() {
     const cookieStore = await cookies();
 
+    // Use dummy values in mock mode to prevent crash
+    const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+    const supabaseUrl = useMockData ? 'https://dummy.supabase.co' : process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = useMockData ? 'dummy-key' : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
     return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        supabaseUrl,
+        supabaseKey,
         {
             cookies: {
                 getAll() {
@@ -32,9 +37,14 @@ export async function createClient() {
 export async function createServiceClient() {
     // Service Role client should NOT interact with cookies or user session.
     // It is a pure admin client.
+    // Use dummy values in mock mode to prevent crash
+    const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+    const supabaseUrl = useMockData ? 'https://dummy.supabase.co' : process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = useMockData ? 'dummy-key' : process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
     return createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        supabaseUrl,
+        supabaseKey,
         {
             auth: {
                 autoRefreshToken: false,
