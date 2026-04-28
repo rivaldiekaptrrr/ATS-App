@@ -21,13 +21,14 @@ import {
     getDashboardStats,
     getPipelineSummary,
     getRecentApplications,
-    type DashboardStats
+    type DashboardStats,
+    type Candidate
 } from '@/lib/services/dashboard';
 
 export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [pipelineSummary, setPipelineSummary] = useState<{ status: string; count: number }[]>([]);
-    const [recentApplications, setRecentApplications] = useState<any[]>([]);
+    const [recentApplications, setRecentApplications] = useState<Candidate[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

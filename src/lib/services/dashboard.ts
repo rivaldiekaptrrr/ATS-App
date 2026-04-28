@@ -167,7 +167,7 @@ export async function getCandidates(): Promise<Candidate[]> {
         return [];
     }
 
-    return (data || []).map((app: any) => ({
+    return (data || []).map((app: {id: string, tracking_id?: string, status: string, score?: number, created_at: string, applicants?: {full_name?: string, email?: string, phone?: string}, jobs?: {title?: string}}) => ({
         id: app.id,
         tracking_id: app.tracking_id,
         name: app.applicants?.full_name || 'Unknown',
@@ -217,7 +217,7 @@ export async function getPipelineCandidates(): Promise<PipelineCandidate[]> {
         return [];
     }
 
-    return (data || []).map((app: any) => ({
+    return (data || []).map((app: {id: string, status: string, applicants?: {full_name?: string, email?: string}, jobs?: {title?: string}}) => ({
         id: app.id,
         name: app.applicants?.full_name || 'Unknown',
         email: app.applicants?.email || '',
@@ -285,7 +285,7 @@ export async function getRecentApplications() {
         return [];
     }
 
-    return (data || []).map((app: any) => {
+    return (data || []).map((app: {id: string, tracking_id?: string, status: string, score?: number, created_at: string, applicants?: {full_name?: string, email?: string, phone?: string}, jobs?: {title?: string}}) => {
         const createdAt = new Date(app.created_at);
         const now = new Date();
         const diffHours = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60));

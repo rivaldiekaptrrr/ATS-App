@@ -49,7 +49,7 @@ export default function DashboardLayout({
     const pathname = usePathname();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [company, setCompany] = useState<CompanySettings | null>(null);
-    const [userProfile, setUserProfile] = useState<any>(null);
+    const [userProfile, setUserProfile] = useState<{role?: string; full_name?: string; avatar_url?: string} | null>(null);
 
     useEffect(() => {
         async function fetchData() {

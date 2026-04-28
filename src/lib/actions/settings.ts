@@ -12,12 +12,13 @@ export interface CompanySettings {
     primary_color: string;
     domain?: string;
     slug: string;
-    parsing_config?: any; // JSONB
+    parsing_config?: Record<string, unknown>; // JSONB
 }
 
 export type ActionResponse = {
     success: boolean;
     message: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: any;
 };
 
@@ -117,7 +118,7 @@ export async function updateCompanySettings(data: Partial<CompanySettings>): Pro
         }
 
         // Prepare update object
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
             updated_at: new Date().toISOString()
         };
 

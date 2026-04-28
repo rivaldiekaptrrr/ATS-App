@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { appConfig } from '@/lib/config';
 
-export async function createJobAction(jobData: any) {
+export async function createJobAction(jobData: Record<string, unknown>) {
     // 1. Mock Data Bypass
     if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
         console.log('[MOCK MODE] Simulating job creation:', jobData);

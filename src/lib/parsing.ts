@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
-import { createServiceClient } from '@/lib/supabase/server'; // Use service client for secure access
+// ==========================================
 
 // ==========================================
 // TYPES
@@ -130,7 +129,8 @@ async function parseWithAI(text: string, apiKey: string): Promise<ParsedCV> {
 // ==========================================
 // MAIN EXPORT
 // ==========================================
-// @ts-ignore - pdf-parse is a CommonJS module
+// @ts-expect-error - pdf-parse is a CommonJS module
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdf = require('pdf-parse');
 
 export async function parseCV(fileBuffer: Buffer, config: ParsingConfig): Promise<ParsedCV> {
@@ -141,6 +141,7 @@ export async function parseCV(fileBuffer: Buffer, config: ParsingConfig): Promis
         const data = await pdf(fileBuffer);
         console.log('[DEBUG] PDF Extract Success. Text Length:', data.text?.length);
         rawText = data.text;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('[DEBUG] PDF Parse Error:', error);
         // Check if error is related to missing canvas (in case old lib is still cached)

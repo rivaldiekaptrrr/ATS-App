@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server'; // Secure access to settings
-import { parseCV } from '@/lib/parsing';
-import { createClient } from '@/lib/supabase/server';
+import { parseCV, type ParsingConfig } from '@/lib/parsing';
 
 export async function POST(request: NextRequest) {
     try {
@@ -20,7 +19,7 @@ export async function POST(request: NextRequest) {
 
         // 2. Get Company Settings (for Parsing Config)
         // Since Applicants are anonymous, we determine config via Job -> Company connection
-        let parsingConfig: any = { engine: 'library' };
+        let parsingConfig: ParsingConfig = { engine: 'library' };
 
         if (jobId) {
             try {

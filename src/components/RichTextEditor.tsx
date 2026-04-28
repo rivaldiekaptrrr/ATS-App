@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback, useMemo } from 'react';
 import {
     Bold,
     Italic,
@@ -25,7 +25,7 @@ interface RichTextEditorProps {
 export function RichTextEditor({ value, onChange, placeholder, className }: RichTextEditorProps) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const insertMarkdown = (before: string, after: string = '') => {
+    const insertMarkdown = useCallback((before: string, after: string = '') => {
         const textarea = textareaRef.current;
         if (!textarea) return;
 
@@ -38,61 +38,25 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
         const newText = beforeText + before + selectedText + after + afterText;
         onChange(newText);
 
-        // Set cursor position
+        // Set cursor position after state update
         setTimeout(() => {
             textarea.focus();
             const newPosition = start + before.length + selectedText.length;
             textarea.setSelectionRange(newPosition, newPosition);
         }, 0);
-    };
+    }, [onChange]);
 
-    const formatButtons = [
-        {
-            icon: Bold,
-            label: 'Bold',
-            action: () => insertMarkdown('**', '**'),
-        },
-        {
-            icon: Italic,
-            label: 'Italic',
-            action: () => insertMarkdown('*', '*'),
-        },
-        {
-            icon: Heading2,
-            label: 'Heading 2',
-            action: () => insertMarkdown('\n## ', '\n'),
-        },
-        {
-            icon: Heading3,
-            label: 'Heading 3',
-            action: () => insertMarkdown('\n### ', '\n'),
-        },
-        {
-            icon: List,
-            label: 'Bullet List',
-            action: () => insertMarkdown('\n- ', '\n'),
-        },
-        {
-            icon: ListOrdered,
-            label: 'Numbered List',
-            action: () => insertMarkdown('\n1. ', '\n'),
-        },
-        {
-            icon: Quote,
-            label: 'Quote',
-            action: () => insertMarkdown('\n> ', '\n'),
-        },
-        {
-            icon: Code,
-            label: 'Code',
-            action: () => insertMarkdown('`', '`'),
-        },
-        {
-            icon: LinkIcon,
-            label: 'Link',
-            action: () => insertMarkdown('[', '](url)'),
-        },
-    ];
+    const formatButtons = useMemo(() => [
+        { icon: Bold,        label: 'Bold',           before: '**',    after: '**'    },
+        { icon: Italic,      label: 'Italic',         before: '*',     after: '*'     },
+        { icon: Heading2,    label: 'Heading 2',      before: '\n## ', after: '\n'    },
+        { icon: Heading3,    label: 'Heading 3',      before: '\n### ',after: '\n'    },
+        { icon: List,        label: 'Bullet List',    before: '\n- ',  after: '\n'    },
+        { icon: ListOrdered, label: 'Numbered List',  before: '\n1. ', after: '\n'    },
+        { icon: Quote,       label: 'Quote',          before: '\n> ', after: '\n'    },
+        { icon: Code,        label: 'Code',           before: '`',     after: '`'     },
+        { icon: LinkIcon,    label: 'Link',           before: '[',     after: '](url)'},
+    ], []);
 
     // Auto-resize textarea
     useEffect(() => {
@@ -107,19 +71,22 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
         <div className={cn('border border-slate-200 rounded-lg overflow-hidden bg-white', className)}>
             {/* Toolbar */}
             <div className="border-b border-slate-200 bg-slate-50 p-2 flex flex-wrap gap-1">
-                {formatButtons.map((button, index) => (
-                    <Button
-                        key={index}
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={button.action}
-                        className="h-8 w-8 p-0"
-                        title={button.label}
-                    >
-                        <button.icon className="w-4 h-4" />
-                    </Button>
-                ))}
+                {formatButtons.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <Button
+                            key={item.label}
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => insertMarkdown(item.before, item.after)}
+                            className="h-8 w-8 p-0"
+                            title={item.label}
+                        >
+                            <Icon className="w-4 h-4" />
+                        </Button>
+                    );
+                })}
             </div>
 
             {/* Editor */}
