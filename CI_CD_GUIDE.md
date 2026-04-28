@@ -11,16 +11,18 @@ Proyek ini menggunakan **GitHub Actions** untuk menjalankan pipeline CI/CD. Terd
 ### A. CI (Continuous Integration) - `ci.yml`
 - **Kapan berjalan?** Setiap kali ada `push` atau `pull request` (PR) ke branch `main` atau `master`.
 - **Apa yang dilakukan?**
-  1. Melakukan _Checkout_ terhadap kode sumber.
-  2. Memasang dependensi Node.js.
-  3. Memastikan tidak ada masalah _code-style_ (`npm run lint`).
-  4. Melakukan kompilasi/build proyek (`npm run build`) untuk memastikan aplikasi bebas dari _error_ (termasuk pengecekan TypeScript).
+  1. **Security Scan**: Mencari kebocoran rahasia menggunakan Gitleaks.
+  2. **Dependency Audit**: Memastikan library aman dengan `npm audit`.
+  3. **Linting**: Pengecekan kualitas kode.
+  4. **Automated Testing**: Menjalankan unit test dengan Vitest.
+  5. **Build Check**: Memastikan proyek dapat di-build.
   
 ### B. CD (Continuous Deployment) - `cd-docker.yml`
-- **Kapan berjalan?** Setiap kali Anda membuat _Release Tag_ baru dengan format awalan `v` (misal: `v1.0.0`, `v2.1.3`).
+- **Kapan berjalan?** Setiap kali Anda membuat _Release Tag_ baru (`v*.*.*`).
 - **Apa yang dilakukan?**
-  1. Menjalankan *build* Dockerfile (menggunakan metode _Multi-stage build_ dan Next.js `standalone` mode agar sangat efisien/kecil ukurannya).
-  2. Mendorong (_push_) Docker Image yang berhasil dibuat ke dalam **GitHub Container Registry (GHCR)**.
+  1. **Build & Push**: Membuat Docker Image dan dikirim ke GitHub Container Registry.
+  2. **Container Scan**: Memindai kerentanan Docker Image menggunakan Trivy.
+  3. **Automated Deploy (Opsional)**: *Catatan: Fitur ini secara default dinonaktifkan (di-comment).* Jika diaktifkan, server VPS akan menarik image terbaru dan restart otomatis via SSH.
 
 ---
 
@@ -38,8 +40,13 @@ Agar Github Actions dapat melakukan tugasnya tanpa *error*, Anda harus menyiapka
 
 | Nama Secret | Deskripsi / Sumber Nilai |
 | :--- | :--- |
-| `NEXT_PUBLIC_SUPABASE_URL` | URL proyek Supabase Anda (Didapat dari Dashboard Supabase -> Project Settings -> API) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Kunci anonim (API Key) proyek Supabase Anda |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL proyek Supabase Anda |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | API Key anonim Supabase |
+
+*Jika sewaktu-waktu Anda memiliki VPS dan mengaktifkan fitur Deploy di `cd-docker.yml`, tambahkan juga:*
+| `DEPLOY_HOST` | IP Address / Domain VPS tujuan |
+| `DEPLOY_USERNAME` | Username login SSH VPS (misal: `root`) |
+| `DEPLOY_KEY` | SSH Private Key untuk akses otomatis ke server |
 
 *(Catatan: Jika Anda menambahkan integrasi *third-party* lain di frontend (misal Resend API) dan Next.js memerlukannya saat build, pastikan Anda juga menambahkannya di *Secrets* GitHub dan ke file `.github/workflows/ci.yml` pada bagian `env:`)*.
 
