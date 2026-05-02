@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, GripVertical, MoreHorizontal, CheckCircle, XCircle, Eye, Mail, Loader2 } from 'lucide-react';
+import { User, GripVertical, MoreHorizontal, CheckCircle, XCircle, Eye, Mail, Loader2, Sparkles, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,10 +17,13 @@ import { PIPELINE_STAGES, getStageByStatus, getNextStage } from '@/constants/sta
 import type { ApplicationStatus } from '@/types';
 import { toast } from 'sonner';
 import { getPipelineCandidates, updateApplicationStatus, type PipelineCandidate } from '@/lib/services/dashboard';
+import { sendStatusChangeEmail } from '@/lib/services/emailAutomation';
+import { getScoreConfig } from '@/lib/services/scoring';
 
 export default function PipelinePage() {
     const [candidates, setCandidates] = useState<PipelineCandidate[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
     useEffect(() => {
         loadCandidates();
@@ -51,8 +54,34 @@ export default function PipelinePage() {
             const stage = getStageByStatus(newStatus);
 
             toast.success(`${candidate?.name} dipindahkan ke ${stage.label}`, {
-                description: 'Email notifikasi akan dikirim ke kandidat',
+                description: 'Mengirim email notifikasi...',
             });
+
+            // Trigger email automation
+            if (candidate) {
+                setSendingEmail(candidateId);
+                try {
+                    const result = await sendStatusChangeEmail({
+                        candidateName: candidate.name,
+                        candidateEmail: candidate.email,
+                        jobTitle: candidate.position,
+                        companyName: 'SmartRecruit',
+                        trackingId: `APP-${candidateId}`,
+                        newStatus: newStatus,
+                        isPass: true,
+                    });
+
+                    if (result.sent) {
+                        toast.success('📧 ' + result.message, {
+                            description: result.mockMode ? 'Mode Demo — email tidak benar-benar dikirim' : undefined,
+                        });
+                    }
+                } catch (error) {
+                    console.error('Email automation error:', error);
+                } finally {
+                    setSendingEmail(null);
+                }
+            }
         } else {
             toast.error('Gagal memindahkan kandidat');
         }
@@ -68,8 +97,34 @@ export default function PipelinePage() {
 
             const candidate = candidates.find(c => c.id === candidateId);
             toast.info(`${candidate?.name} ditolak`, {
-                description: 'Email rejection akan dikirim ke kandidat',
+                description: 'Mengirim email rejection...',
             });
+
+            // Trigger rejection email automation
+            if (candidate) {
+                setSendingEmail(candidateId);
+                try {
+                    const result = await sendStatusChangeEmail({
+                        candidateName: candidate.name,
+                        candidateEmail: candidate.email,
+                        jobTitle: candidate.position,
+                        companyName: 'SmartRecruit',
+                        trackingId: `APP-${candidateId}`,
+                        newStatus: candidate.status as ApplicationStatus,
+                        isPass: false,
+                    });
+
+                    if (result.sent) {
+                        toast.info('📧 ' + result.message, {
+                            description: result.mockMode ? 'Mode Demo — email tidak benar-benar dikirim' : undefined,
+                        });
+                    }
+                } catch (error) {
+                    console.error('Email automation error:', error);
+                } finally {
+                    setSendingEmail(null);
+                }
+            }
         } else {
             toast.error('Gagal menolak kandidat');
         }
@@ -89,9 +144,17 @@ export default function PipelinePage() {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900">Pipeline Rekrutmen</h1>
-                <p className="text-slate-600">Kelola kandidat melalui setiap tahap rekrutmen</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900">Pipeline Rekrutmen</h1>
+                    <p className="text-slate-600">Kelola kandidat melalui setiap tahap rekrutmen</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 px-3 py-1">
+                        <Zap className="w-3 h-3 mr-1" />
+                        Email Automation Active
+                    </Badge>
+                </div>
             </div>
 
             {/* Kanban Board */}
@@ -115,68 +178,80 @@ export default function PipelinePage() {
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-3 min-h-[400px]">
-                                        {stageCandidates.map((candidate) => (
-                                            <Card
-                                                key={candidate.id}
-                                                className="border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                                            >
-                                                <CardContent className="p-3">
-                                                    <div className="flex items-start gap-3">
-                                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                                            <span className="text-xs font-medium text-white">
-                                                                {candidate.name.split(' ').map(n => n[0]).join('')}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-slate-900 text-sm truncate">
-                                                                {candidate.name}
-                                                            </p>
-                                                            <p className="text-xs text-slate-500 truncate">
-                                                                {candidate.position}
-                                                            </p>
-                                                        </div>
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-7 w-7 -mr-2 -mt-1">
-                                                                    <MoreHorizontal className="w-4 h-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end" className="w-48">
-                                                                <DropdownMenuItem>
-                                                                    <Eye className="w-4 h-4 mr-2" />
-                                                                    Lihat Detail
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem>
-                                                                    <Mail className="w-4 h-4 mr-2" />
-                                                                    Kirim Email
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                {stage.id !== 'hired' && (
-                                                                    <>
-                                                                        {getNextStage(stage.id) && (
-                                                                            <DropdownMenuItem
-                                                                                className="text-green-600"
-                                                                                onClick={() => moveCandidate(candidate.id, getNextStage(stage.id)!)}
-                                                                            >
-                                                                                <CheckCircle className="w-4 h-4 mr-2" />
-                                                                                Lolos ke {getStageByStatus(getNextStage(stage.id)!).label}
-                                                                            </DropdownMenuItem>
-                                                                        )}
-                                                                        <DropdownMenuItem
-                                                                            className="text-red-600"
-                                                                            onClick={() => rejectCandidate(candidate.id)}
-                                                                        >
-                                                                            <XCircle className="w-4 h-4 mr-2" />
-                                                                            Tolak
-                                                                        </DropdownMenuItem>
-                                                                    </>
+                                        {stageCandidates.map((candidate) => {
+                                            const scoreConfig = candidate.score ? getScoreConfig(candidate.score) : null;
+                                            const isSendingThisEmail = sendingEmail === candidate.id;
+
+                                            return (
+                                                <Card
+                                                    key={candidate.id}
+                                                    className={`border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer ${isSendingThisEmail ? 'ring-2 ring-purple-300 animate-pulse' : ''}`}
+                                                >
+                                                    <CardContent className="p-3">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                                                <span className="text-xs font-medium text-white">
+                                                                    {candidate.name.split(' ').map(n => n[0]).join('')}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-slate-900 text-sm truncate">
+                                                                    {candidate.name}
+                                                                </p>
+                                                                <p className="text-xs text-slate-500 truncate">
+                                                                    {candidate.position}
+                                                                </p>
+                                                                {/* Score Badge */}
+                                                                {candidate.score !== null && candidate.score !== undefined && scoreConfig && (
+                                                                    <div className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${scoreConfig.bg} ${scoreConfig.color} ${scoreConfig.border} border`}>
+                                                                        <Sparkles className="w-3 h-3" />
+                                                                        {candidate.score}% — {scoreConfig.label}
+                                                                    </div>
                                                                 )}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
+                                                            </div>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" className="h-7 w-7 -mr-2 -mt-1">
+                                                                        <MoreHorizontal className="w-4 h-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end" className="w-48">
+                                                                    <DropdownMenuItem>
+                                                                        <Eye className="w-4 h-4 mr-2" />
+                                                                        Lihat Detail
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem>
+                                                                        <Mail className="w-4 h-4 mr-2" />
+                                                                        Kirim Email
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    {stage.id !== 'hired' && (
+                                                                        <>
+                                                                            {getNextStage(stage.id) && (
+                                                                                <DropdownMenuItem
+                                                                                    className="text-green-600"
+                                                                                    onClick={() => moveCandidate(candidate.id, getNextStage(stage.id)!)}
+                                                                                >
+                                                                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                                                                    Lolos ke {getStageByStatus(getNextStage(stage.id)!).label}
+                                                                                </DropdownMenuItem>
+                                                                            )}
+                                                                            <DropdownMenuItem
+                                                                                className="text-red-600"
+                                                                                onClick={() => rejectCandidate(candidate.id)}
+                                                                            >
+                                                                                <XCircle className="w-4 h-4 mr-2" />
+                                                                                Tolak
+                                                                            </DropdownMenuItem>
+                                                                        </>
+                                                                    )}
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })}
 
                                         {stageCandidates.length === 0 && (
                                             <div className="flex flex-col items-center justify-center py-8 text-slate-400">

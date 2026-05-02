@@ -96,14 +96,14 @@ export function getMockJobById(id: string) {
 
 // Mock candidates/applications for Pipeline and Candidates pages
 export const mockCandidates = [
-    { id: '1', tracking_id: 'APP-ABC123', name: 'Ahmad Rizki', email: 'ahmad@email.com', phone: '08123456789', position: 'Senior Frontend Developer', status: 'interview_1', score: 85, applied_at: '2026-01-05' },
-    { id: '2', tracking_id: 'APP-DEF456', name: 'Siti Nurhaliza', email: 'siti@email.com', phone: '08234567890', position: 'Product Manager', status: 'screening', score: null, applied_at: '2026-01-06' },
-    { id: '3', tracking_id: 'APP-GHI789', name: 'Budi Santoso', email: 'budi@email.com', phone: '08345678901', position: 'UI/UX Designer', status: 'applied', score: null, applied_at: '2026-01-07' },
-    { id: '4', tracking_id: 'APP-JKL012', name: 'Dewi Kartika', email: 'dewi@email.com', phone: '08456789012', position: 'Backend Developer', status: 'test', score: 78, applied_at: '2026-01-04' },
-    { id: '5', tracking_id: 'APP-MNO345', name: 'Eko Prasetyo', email: 'eko@email.com', phone: '08567890123', position: 'DevOps Engineer', status: 'offering', score: 92, applied_at: '2026-01-03' },
-    { id: '6', tracking_id: 'APP-PQR678', name: 'Fitri Handayani', email: 'fitri@email.com', phone: '08678901234', position: 'HR Generalist', status: 'interview_2', score: 80, applied_at: '2026-01-02' },
-    { id: '7', tracking_id: 'APP-STU901', name: 'Gunawan Wijaya', email: 'gunawan@email.com', phone: '08789012345', position: 'Frontend Developer', status: 'hired', score: 95, applied_at: '2025-12-28' },
-    { id: '8', tracking_id: 'APP-VWX234', name: 'Hana Permata', email: 'hana@email.com', phone: '08890123456', position: 'Data Analyst', status: 'rejected', score: 65, applied_at: '2026-01-01' },
+    { id: '1', tracking_id: 'APP-ABC123', name: 'Ahmad Rizki', email: 'ahmad@email.com', phone: '08123456789', position: 'Senior Frontend Developer', status: 'interview_1', score: 85, applied_at: '2026-01-05', skills: ['react', 'typescript', 'next.js', 'tailwind', 'redux', 'git'] },
+    { id: '2', tracking_id: 'APP-DEF456', name: 'Siti Nurhaliza', email: 'siti@email.com', phone: '08234567890', position: 'Product Manager', status: 'screening', score: null, applied_at: '2026-01-06', skills: ['agile', 'scrum', 'jira', 'project management'] },
+    { id: '3', tracking_id: 'APP-GHI789', name: 'Budi Santoso', email: 'budi@email.com', phone: '08345678901', position: 'UI/UX Designer', status: 'applied', score: null, applied_at: '2026-01-07', skills: ['figma', 'css', 'html', 'adobe xd'] },
+    { id: '4', tracking_id: 'APP-JKL012', name: 'Dewi Kartika', email: 'dewi@email.com', phone: '08456789012', position: 'Backend Developer', status: 'test', score: 78, applied_at: '2026-01-04', skills: ['python', 'django', 'postgresql', 'docker', 'aws', 'redis'] },
+    { id: '5', tracking_id: 'APP-MNO345', name: 'Eko Prasetyo', email: 'eko@email.com', phone: '08567890123', position: 'DevOps Engineer', status: 'offering', score: 92, applied_at: '2026-01-03', skills: ['docker', 'kubernetes', 'aws', 'terraform', 'linux', 'ci/cd', 'git', 'bash'] },
+    { id: '6', tracking_id: 'APP-PQR678', name: 'Fitri Handayani', email: 'fitri@email.com', phone: '08678901234', position: 'HR Generalist', status: 'interview_2', score: 80, applied_at: '2026-01-02', skills: ['communication', 'project management', 'leadership'] },
+    { id: '7', tracking_id: 'APP-STU901', name: 'Gunawan Wijaya', email: 'gunawan@email.com', phone: '08789012345', position: 'Frontend Developer', status: 'hired', score: 95, applied_at: '2025-12-28', skills: ['react', 'vue', 'typescript', 'javascript', 'tailwind', 'git', 'graphql', 'next.js'] },
+    { id: '8', tracking_id: 'APP-VWX234', name: 'Hana Permata', email: 'hana@email.com', phone: '08890123456', position: 'Data Analyst', status: 'rejected', score: 65, applied_at: '2026-01-01', skills: ['python', 'sql'] },
 ];
 
 // Mock dashboard stats

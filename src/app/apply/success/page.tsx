@@ -1,14 +1,18 @@
+'use client';
+
 import { CheckCircle, Briefcase, Copy, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import * as React from 'react';
+import { toast } from 'sonner';
 
-export default async function ApplySuccessPage({
+export default function ApplySuccessPage({
     searchParams,
 }: {
     searchParams: Promise<{ tracking_id?: string }>;
 }) {
-    const { tracking_id } = await searchParams;
+    const { tracking_id } = React.use(searchParams);
     const trackingId = tracking_id || 'APP-XXXXXX';
 
     return (
@@ -57,6 +61,7 @@ export default async function ApplySuccessPage({
                                     className="h-10 w-10"
                                     onClick={() => {
                                         navigator.clipboard.writeText(trackingId);
+                                        toast.success('ID Tracking berhasil disalin!');
                                     }}
                                 >
                                     <Copy className="w-4 h-4" />

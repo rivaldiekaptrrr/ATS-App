@@ -13,7 +13,8 @@ import {
     Settings,
     LogOut,
     ChevronLeft,
-    Menu
+    Menu,
+    Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,6 +37,7 @@ const sidebarItems = [
     { name: 'Lowongan', href: '/dashboard/jobs', icon: FileText },
     { name: 'Pipeline', href: '/dashboard/pipeline', icon: Kanban },
     { name: 'Kandidat', href: '/dashboard/candidates', icon: Users },
+    { name: 'Intelligence', href: '/dashboard/intelligence', icon: Sparkles },
     { name: 'Email Templates', href: '/dashboard/templates', icon: Mail },
     { name: 'Tim & User', href: '/dashboard/team', icon: Users },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },

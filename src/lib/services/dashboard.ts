@@ -9,6 +9,38 @@ import {
 } from '@/lib/config';
 
 // ============================================
+// SESSION-BASED MOCK STORAGE (Browser LocalStorage)
+// ============================================
+// Since dashboard functions are called from Client Components, 
+// we use localStorage to persist mock data across page reloads.
+const MOCK_STORAGE_KEY = 'ats_mock_candidates';
+
+export function getSessionMockCandidates(): any[] {
+    if (typeof window === 'undefined') return [];
+    
+    try {
+        const data = localStorage.getItem(MOCK_STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        console.error('Error reading mock storage:', e);
+        return [];
+    }
+}
+
+export function addMockApplication(candidate: any) {
+    if (typeof window === 'undefined') return;
+    
+    const current = getSessionMockCandidates();
+    const updated = [candidate, ...current];
+    try {
+        localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(updated));
+        console.log('[MOCK STORE] Added new candidate to localStorage:', candidate.name);
+    } catch (e) {
+        console.error('Error writing mock storage:', e);
+    }
+}
+
+// ============================================
 // TYPES
 // ============================================
 
@@ -48,6 +80,7 @@ export interface PipelineCandidate {
     email: string;
     position: string;
     status: string;
+    score?: number | null;
     avatar?: string;
 }
 
@@ -137,8 +170,8 @@ export async function getDashboardJobs(): Promise<DashboardJob[]> {
 // ============================================
 export async function getCandidates(): Promise<Candidate[]> {
     if (appConfig.useMockData) {
-        console.log('[MOCK MODE] Returning mock candidates');
-        return mockCandidates as Candidate[];
+        console.log('[MOCK MODE] Returning mock candidates + session candidates');
+        return [...getSessionMockCandidates(), ...mockCandidates] as Candidate[];
     }
 
     const supabase = createClient();
@@ -185,13 +218,15 @@ export async function getCandidates(): Promise<Candidate[]> {
 // ============================================
 export async function getPipelineCandidates(): Promise<PipelineCandidate[]> {
     if (appConfig.useMockData) {
-        console.log('[MOCK MODE] Returning mock pipeline candidates');
-        return mockCandidates.map(c => ({
+        console.log('[MOCK MODE] Returning mock pipeline candidates + session candidates');
+        const allCandidates = [...getSessionMockCandidates(), ...mockCandidates];
+        return allCandidates.map(c => ({
             id: c.id,
             name: c.name,
             email: c.email,
             position: c.position,
             status: c.status,
+            score: c.score,
         }));
     }
 

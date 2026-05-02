@@ -21,7 +21,6 @@ export type ParsedCV = {
 // ==========================================
 // LIBRARY PARSER (Regex & Logic)
 // ==========================================
-// A comprehensive list of tech skills to match against
 const SKILL_KEYWORDS = [
     'javascript', 'typescript', 'python', 'java', 'c++', 'c#', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin',
     'react', 'vue', 'angular', 'svelte', 'next.js', 'nuxt', 'express', 'nestjs', 'django', 'flask', 'laravel', 'spring',
@@ -29,59 +28,76 @@ const SKILL_KEYWORDS = [
     'git', 'ci/cd', 'html', 'css', 'tailwind', 'sass', 'redux', 'graphql', 'rest api', 'agile', 'scrum', 'jira'
 ];
 
+// Words to ignore when looking for a name
+const NAME_IGNORE_WORDS = [
+    'curriculum', 'vitae', 'resume', 'profile', 'contact', 'summary', 'experience', 'education', 
+    'email', 'phone', 'address', 'git', 'version', 'control', 'page', 'skills', 'technical',
+    'personal', 'work', 'projects', 'professional'
+];
+
 async function parseWithLibrary(text: string): Promise<ParsedCV> {
+    // Clean up the text first
+    const cleanText = text.replace(/\s+/g, ' ').trim();
+    
     // 1. Extract Email
     const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
     const emailMatch = text.match(emailRegex);
     const email = emailMatch ? emailMatch[0] : '';
 
-    // 2. Extract Phone (Indonesian & International formats)
-    // Matches: +62 812..., 0812..., (021) ...
+    // 2. Extract Phone
     const phoneRegex = /(?:\+62|62|0)(?:\d[- ]?){8,15}/;
     const phoneMatch = text.match(phoneRegex);
     const phone = phoneMatch ? phoneMatch[0].replace(/[^0-9+]/g, '') : '';
 
-    // 3. Extract Skills (Keyword Matching)
+    // 3. Extract Skills
     const lowerText = text.toLowerCase();
     const skills = SKILL_KEYWORDS.filter(skill => lowerText.includes(skill));
 
-    // 4. Extract Name (Heuristic)
-    // Strategy: Look for the first line that looks like a name (2-4 words, no numbers/symbols)
-    // Exclude common header words like "Curriculum Vitae", "Resume", "Profile"
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    const ignoreWords = ['curriculum', 'vitae', 'resume', 'profile', 'contact', 'summary', 'experience', 'education', 'email', 'phone', 'address'];
-
+    // 4. Extract Name (Enhanced Heuristic)
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
     let fullName = 'Unknown';
-    for (let i = 0; i < Math.min(lines.length, 10); i++) {
-        const line = lines[i];
+    
+    for (const line of lines.slice(0, 15)) {
         const lowerLine = line.toLowerCase();
-
-        // Skip if contains ignore words
-        if (ignoreWords.some(w => lowerLine.includes(w))) continue;
-
-        // Skip if is email or phone
-        if (emailRegex.test(line) || phoneRegex.test(line)) continue;
-
-        // Skip if too long or too short
-        if (line.length < 3 || line.length > 50) continue;
-
-        // Valid name pattern: Letters and spaces only, 2-5 words
-        if (/^[a-zA-Z\s.,'-]+$/.test(line) && line.split(' ').length >= 2) {
+        
+        // Skip common headers and technical words
+        if (NAME_IGNORE_WORDS.some(w => lowerLine.includes(w))) continue;
+        
+        // Skip if too long, too short, or has numbers/special chars
+        if (line.length < 3 || line.length > 40) continue;
+        if (/[0-9!@#$%^&*()_+={}\[\]|\\:;"'<>,.?\/]/.test(line)) continue;
+        
+        // If it's 2-4 words and passes checks, it's likely the name
+        const wordCount = line.split(/\s+/).length;
+        if (wordCount >= 2 && wordCount <= 4) {
             fullName = line;
             break;
         }
     }
 
-    // 5. Generate Summary
-    // Grab the first paragraph that isn't the header
-    const summary = lines.find(l => l.length > 50 && !l.toLowerCase().includes('experience')) || `${skills.length} detected skills. auto-parsed.`;
+    // 5. Extract Summary/Profile
+    // Look for a long block of text that isn't just a list of skills
+    let summary = '';
+    const longLines = lines.filter(l => l.length > 60);
+    
+    if (longLines.length > 0) {
+        // Find the first long line that doesn't look like a technical header
+        const bestLine = longLines.find(l => 
+            !l.toLowerCase().includes('experience') && 
+            !l.toLowerCase().includes('education') &&
+            !l.includes('!!!') // Skip weird noise lines
+        );
+        summary = bestLine || longLines[0];
+    } else {
+        summary = `Professional with experience in ${skills.slice(0, 5).join(', ')}.`;
+    }
 
     return {
         full_name: fullName,
         email,
         phone,
         skills,
-        summary: summary.substring(0, 500) // Limit length
+        summary: summary.substring(0, 500)
     };
 }
 
@@ -94,19 +110,18 @@ async function parseWithAI(text: string, apiKey: string): Promise<ParsedCV> {
     const openai = new OpenAI({ apiKey });
 
     const prompt = `
-    You are an expert Resume Parser. Your job is to extract structured data from the following Resume Text.
-    
-    Return ONLY a JSON object with this structure:
+    Extract structured data from the following Resume Text.
+    Return ONLY a JSON object:
     {
         "full_name": "string",
         "email": "string",
         "phone": "string",
-        "skills": ["string", "string"],
-        "summary": "string (a professional 2-sentence summary of the candidate)"
+        "skills": ["string"],
+        "summary": "2-sentence summary"
     }
 
     Resume Text:
-    ${text.substring(0, 4000)} // Limit context window
+    ${text.substring(0, 5000)}
     `;
 
     try {
@@ -117,51 +132,40 @@ async function parseWithAI(text: string, apiKey: string): Promise<ParsedCV> {
         });
 
         const content = completion.choices[0].message.content;
-        if (!content) throw new Error('No content from AI');
-
-        return JSON.parse(content) as ParsedCV;
+        return JSON.parse(content || '{}') as ParsedCV;
     } catch (error) {
         console.error('AI Parse Error:', error);
-        throw new Error('AI Parsing failed. Check API Key or Quota.');
+        throw error;
     }
 }
 
 // ==========================================
 // MAIN EXPORT
 // ==========================================
-// @ts-expect-error - pdf-parse is a CommonJS module
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require('pdf-parse');
+// WORKAROUND for pdf-parse bug in Next.js:
+// Use a more robust require or direct access if possible
+// @ts-expect-error - pdf-parse types
+const pdfParser = require('pdf-parse/lib/pdf-parse.js');
 
 export async function parseCV(fileBuffer: Buffer, config: ParsingConfig): Promise<ParsedCV> {
-    // 1. Extract Text from PDF
     let rawText = '';
     try {
-        console.log('[DEBUG] Parsing PDF Buffer of size:', fileBuffer.length);
-        const data = await pdf(fileBuffer);
-        console.log('[DEBUG] PDF Extract Success. Text Length:', data.text?.length);
-        rawText = data.text;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // Passing an empty object as the second argument helps bypass some internal file loading
+        const data = await pdfParser(fileBuffer);
+        rawText = data.text || '';
     } catch (error: any) {
-        console.error('[DEBUG] PDF Parse Error:', error);
-        // Check if error is related to missing canvas (in case old lib is still cached)
-        if (error.message?.includes('Canvas') || error.message?.includes('DOMMatrix')) {
-            throw new Error('Server library conflict. Please restart server completely.');
-        }
-        throw new Error(`Failed to read PDF file: ${error.message}`);
+        console.error('[PARSER ERROR]', error);
+        throw new Error(`Gagal membaca file PDF: ${error.message}`);
     }
 
-    // 2. Select Engine
     if (config.engine === 'ai' && config.openai_api_key) {
         try {
             return await parseWithAI(rawText, config.openai_api_key);
-        } catch (error) {
-            console.warn('AI Parsing failed, falling back to Library:', error);
-            // Fallback to library if AI fails
+        } catch {
             return parseWithLibrary(rawText);
         }
-    } else {
-        // Library Mode (Default)
-        return parseWithLibrary(rawText);
     }
+    
+    return parseWithLibrary(rawText);
 }
+

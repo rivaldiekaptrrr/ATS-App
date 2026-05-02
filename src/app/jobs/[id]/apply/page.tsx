@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Briefcase, ArrowLeft, Upload, FileText, CheckCircle, Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { Briefcase, ArrowLeft, Upload, FileText, CheckCircle, Loader2, Sparkles, Wand2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/form';
 import { createClient } from '@/lib/supabase/client';
 import { appConfig, getMockJobById } from '@/lib/config';
+import { checkDuplicateApplicant } from '@/lib/services/dedup';
 
 interface Job {
     id: string;
@@ -40,6 +41,8 @@ export default function ApplyPage() {
     const [job, setJob] = useState<Job | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+    const [parsedSkills, setParsedSkills] = useState<string[]>([]);
 
     // Parsing State
     const [isParsing, setIsParsing] = useState(false);
@@ -61,11 +64,31 @@ export default function ApplyPage() {
         },
     });
 
+    // Watch email for duplicate detection
+    const emailValue = form.watch('email');
+
+    useEffect(() => {
+        const checkDuplicate = async () => {
+            if (emailValue && emailValue.includes('@')) {
+                const result = await checkDuplicateApplicant(emailValue, id);
+                if (result.isDuplicate && result.message) {
+                    setDuplicateWarning(result.message);
+                } else {
+                    setDuplicateWarning(null);
+                }
+            } else {
+                setDuplicateWarning(null);
+            }
+        };
+
+        const timeoutId = setTimeout(checkDuplicate, 500); // debounce
+        return () => clearTimeout(timeoutId);
+    }, [emailValue, id]);
+
     // Fetch job data on mount
     useEffect(() => {
         async function fetchJob() {
             if (appConfig.useMockData) {
-                // ... (Keep existing mock logic for offline dev)
                 const mockJob = getMockJobById(id);
                 if (mockJob) {
                     setJob({
@@ -117,8 +140,6 @@ export default function ApplyPage() {
         // Validate type
         if (file.type !== 'application/pdf') {
             toast.error('Saat ini Auto-Fill hanya mendukung file PDF');
-            // Still allow file to be set for manual upload if needed? 
-            // For now let's strict it to PDF for the parsing feature
             setSelectedFile(file);
             return;
         }
@@ -127,26 +148,9 @@ export default function ApplyPage() {
         setIsParsing(true);
         setParseStatus('Membaca dokumen...');
 
-        // Create FormData for API
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('jobId', id); // Pass Job ID for config lookup
-
-        // MOCK SIMULATION
-        if (appConfig.useMockData) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            form.setValue('full_name', 'Budi Santoso (Simulasi)');
-            form.setValue('email', 'budi@simulasi.com');
-            form.setValue('phone', '08123456789');
-            form.setValue('bio', 'Software Engineer berpengalaman. (Ini data simulasi karena Mock Mode aktif).');
-            form.setValue('linkedin_url', 'linkedin.com/in/simulasi');
-
-            toast.info('Mode Simulasi: Data dummy digunakan.');
-            setIsParsing(false);
-            setParseStatus('');
-            return;
-        }
+        formData.append('jobId', id);
 
         try {
             const response = await fetch('/api/parse-cv', {
@@ -154,22 +158,37 @@ export default function ApplyPage() {
                 body: formData
             });
 
+            if (!response.ok) {
+                // Handle cases where the server returns a 500 HTML error page (like Turbopack compilation errors)
+                const text = await response.text();
+                let errorMessage = 'Gagal memproses CV dari server.';
+                try {
+                    const errObj = JSON.parse(text);
+                    errorMessage = errObj.error || errorMessage;
+                } catch {
+                    console.error('Server returned non-JSON error:', text.substring(0, 500));
+                    if (text.includes('pdf-parse')) {
+                         errorMessage = 'Server gagal memuat library pembaca PDF. Harap restart server.';
+                    }
+                }
+                throw new Error(errorMessage);
+            }
+
             const result = await response.json();
 
             if (!result.success) {
                 throw new Error(result.error || 'Gagal memproses CV');
             }
 
-            // Auto-fill form
             setParseStatus('Mengisi formulir...');
             const data = result.data;
-
+            
             if (data.full_name) form.setValue('full_name', data.full_name);
             if (data.email) form.setValue('email', data.email);
             if (data.phone) form.setValue('phone', data.phone);
             if (data.summary) form.setValue('bio', data.summary);
+            if (data.skills) setParsedSkills(data.skills);
 
-            // Show toast based on engine
             if (result.engine_used === 'ai') {
                 toast.success('✨ CV berhasil dianalisis menggunakan AI!');
             } else {
@@ -210,19 +229,38 @@ export default function ApplyPage() {
 
     // Submit Logic
     const onSubmit = async (data: ApplicationFormData) => {
+        if (duplicateWarning) {
+            toast.error('Anda sudah melamar posisi ini sebelumnya.');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
-            // MOCK SUBMIT
             if (appConfig.useMockData) {
+                // Calculate real AI score even in mock mode if skills are available
+                const mockScore = parsedSkills.length > 0 ? Math.min(100, (parsedSkills.length / 5) * 100) : 70;
+                
+                const { addMockApplication } = await import('@/lib/services/dashboard');
+                addMockApplication({
+                    id: `mock-${Date.now()}`,
+                    tracking_id: `MOCK-${Date.now()}`,
+                    name: data.full_name,
+                    email: data.email,
+                    phone: data.phone,
+                    position: job.title,
+                    status: 'applied',
+                    score: Math.round(mockScore),
+                    applied_at: new Date().toISOString()
+                });
+
                 await new Promise(r => setTimeout(r, 1500));
                 toast.success('MOCK: Lamaran berhasil dikirim!');
-                router.push('/dashboard/jobs'); // Redirect back to list
+                router.push(`/apply/success?tracking_id=MOCK-${Date.now()}`); 
                 return;
             }
 
             const supabase = createClient();
 
-            // 1. Upload CV File first if selected
             let cvUrl = null;
             let cvFilename = null;
 
@@ -242,7 +280,6 @@ export default function ApplyPage() {
                 cvFilename = selectedFile.name;
             }
 
-            // 2. Create Applicant
             const { data: applicant, error: applicantError } = await supabase
                 .from('applicants')
                 .insert([{
@@ -261,8 +298,6 @@ export default function ApplyPage() {
 
             if (applicantError) throw applicantError;
 
-            // 3. Create Application
-            // Get proper company id
             const { data: jobData } = await supabase
                 .from('jobs')
                 .select('company_id')
@@ -396,6 +431,16 @@ export default function ApplyPage() {
                         <CardDescription>Silakan lengkapi atau koreksi data di bawah ini</CardDescription>
                     </CardHeader>
                     <CardContent>
+                        {duplicateWarning && (
+                            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+                                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-sm font-medium text-amber-900">Perhatian</p>
+                                    <p className="text-sm text-amber-700 mt-1">{duplicateWarning}</p>
+                                </div>
+                            </div>
+                        )}
+
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                 <div className="grid md:grid-cols-2 gap-6">
@@ -477,7 +522,7 @@ export default function ApplyPage() {
                                     type="submit"
                                     size="lg"
                                     className="w-full text-lg mt-4"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || !!duplicateWarning}
                                 >
                                     {isSubmitting ? (
                                         <>
